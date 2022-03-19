@@ -26,8 +26,9 @@ get_schedule(){
 	mkdir $q
 	if curl -o $q/$schedule -L 'https://www.mirea.ru/schedule' 2> /dev/null
 	then
-		url="$(grep -io "https:[^\"\'_]*${institute}_${course}[^.\\]*[во][ес][се]н[аь][^\"\']*" < $q/$schedule)"
-		if wget -O $q/$schedule "$url" 2> /dev/null
+		url="$(grep -io "https:[^\"\'_]*${institute}_${course}[^.\\]*[во][ес][се]н[аь][^\"\']*" < $q/$schedule | sed 's/ /%20/g')"
+		echo $url
+		if curl -v -L -o $q/$schedule "$url" 2> /dev/null
 		then
 			cd $q || exit 240
 			xlsx2csv -d '~' -e $q/$schedule $q/$schedule.csv || exit 241
@@ -38,7 +39,6 @@ get_schedule(){
 			fi
 			columns="$(expr $column + 1 - 1),$(expr $column + 1),$(expr $column + 2),$(expr $column + 3),$(expr $column + 4)"
 			dothat="cut -d~ -f1,2,3,4,5,${columns}"
-			echo $dothat
 			cut -d~ -f1,2,3,4,5,${columns} < ${q}/${schedule}.csv | sed -e 's/^\([^~]*\)/\1\n/' | sed '/^$/d' | sed -e 's/^\([^~Дд]\)/MARK\n\1/; /Начальник[[:space:]]*УМУ/q' | csplit -s - '/MARK/' '{*}'
 			rm $q/xx00
 		else
@@ -68,14 +68,16 @@ do
 			fi
 			day=$(echo "${day} 7%1+p" | dc)
 			;;
-		n | nw)
+		n | nw | сн)
 			week=$(echo "${week} 1+p"|dc)
 			printf 'Следующая неделя - %d ая\n' $week
 			day='*'
 			;;
-		*)
+		a | all | все)
 			week=0
 			day='*'
+			;;
+		*)
 			;;
 	esac
 	shift
